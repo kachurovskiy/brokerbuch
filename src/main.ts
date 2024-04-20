@@ -22,8 +22,11 @@ function readFile() {
 }
 readFile();
 
-const outputElement = document.getElementById('transactionOutput')!;
+const isinToTitle = new Map<string, string>();
+
 function renderTransactionFile(file: TransactionFile) {
+  const outputElement = document.getElementById('transactionOutput')!;
+
   for (const error of file.errors) {
     const errorElement = document.createElement('div');
     errorElement.innerText = error;
@@ -31,17 +34,116 @@ function renderTransactionFile(file: TransactionFile) {
     outputElement.appendChild(errorElement);
   }
   const executedTransactions = file.transactions.filter(t => t.status === 'Executed').sort((a, b) => a.time.getTime() - b.time.getTime());
+  for (const transaction of executedTransactions) {
+    if (transaction.isin && transaction.description) isinToTitle.set(transaction.isin, transaction.description);
+  }
   processSales(executedTransactions);
+
+  outputElement.appendChild(renderYearsSection(executedTransactions));
+
+  // Show each group of transactions.
   const groups = groupTransactions(executedTransactions);
+  let firstIsinEl = null;
   for (const group of groups) {
     const transactions = group[1];
     const el = renderGroup(transactions);
-    if (transactions[0].isin) {
+    if (transactions[0].isin || !firstIsinEl) {
       outputElement.appendChild(el);
+      firstIsinEl = el;
     } else {
-      outputElement.insertBefore(el, outputElement.firstChild);
+      outputElement.insertBefore(el, firstIsinEl);
     }
   }
+}
+
+function renderYearsSection(transactions: Transaction[]): HTMLDivElement {
+  const result = document.createElement('div');
+
+  const titleElement = document.createElement('h2');
+  titleElement.innerText = 'Realized gain / loss per year';
+  result.appendChild(titleElement);
+
+  const years = transactions.map(t => t.time.getUTCFullYear());
+  const uniqueYears = Array.from(new Set(years)).sort((a, b) => a - b);
+  for (const year of uniqueYears) {
+    const yearTransactions = transactions.filter(t => t.time.getUTCFullYear() === year && t.gainOrLoss !== 0);
+    if (yearTransactions.length === 0) continue;
+    result.appendChild(renderYearSection(year, yearTransactions));
+  }
+
+  return result;
+}
+
+function renderYearSection(year: number, transactions: Transaction[]): HTMLDivElement {
+  const result = document.createElement('div');
+
+  const titleElement = document.createElement('h3');
+  titleElement.innerText = 'Calendar year ' + year;
+  result.appendChild(titleElement);
+
+  const securityTable = document.createElement('table');
+  securityTable.classList.add('yearSecurityTable');
+  result.appendChild(securityTable);
+
+  const securityThead = document.createElement('thead');
+  securityTable.appendChild(securityThead);
+  const securityHeaderRow = document.createElement('tr');
+  securityThead.appendChild(securityHeaderRow);
+  const securityHeaders = ['Security', 'Gain/Loss'];
+  for (const header of securityHeaders) {
+    const th = document.createElement('th');
+    th.innerText = header;
+    if (isNumericHeader(header)) th.classList.add('numeric');
+    securityHeaderRow.appendChild(th);
+  }
+
+  const securityMap = new Map<string, number>();
+  for (const transaction of transactions) {
+    const key = transaction.isin;
+    const gainLoss = securityMap.get(key) || 0;
+    securityMap.set(key, gainLoss + transaction.gainOrLoss);
+  }
+
+  for (const [security, gainLoss] of securityMap) {
+    const row = document.createElement('tr');
+    securityTable.appendChild(row);
+    const securityCell = document.createElement('td');
+    const securityLink = document.createElement('a');
+    securityLink.innerText = isinToTitle.get(security) || security;
+    securityLink.href = '#' + security;
+    securityCell.appendChild(securityLink);
+    row.appendChild(securityCell);
+    const gainLossCell = document.createElement('td');
+    gainLossCell.innerText = gainLoss.toFixed(2);
+    gainLossCell.classList.add(gainLoss > 0 ? 'positive' : 'negative');
+    row.appendChild(gainLossCell);
+  }
+
+  // Sort all rows in securityTable by first cell (security name) asc.
+  const rows = Array.from(securityTable.rows).slice(1);
+  rows.sort((a, b) => a.cells[0].innerText.localeCompare(b.cells[0].innerText));
+  for (const row of rows) {
+    securityTable.appendChild(row);
+  }
+
+  // Total gain/loss for the year
+  const totalRow = document.createElement('tr');
+  totalRow.classList.add('totalRow');
+  securityTable.appendChild(totalRow);
+  const totalCell = document.createElement('td');
+  totalCell.innerText = 'Total';
+  totalRow.appendChild(totalCell);
+  const totalGainLoss = document.createElement('td');
+  const gainLossSum = transactions.reduce((total, t) => total + t.gainOrLoss, 0);
+  totalGainLoss.innerText = gainLossSum.toFixed(2);
+  totalGainLoss.classList.add(gainLossSum > 0 ? 'positive' : 'negative');
+  totalRow.appendChild(totalGainLoss);
+
+  return result;
+}
+
+function isNumericHeader(header: string): boolean {
+  return ['Shares', 'Price', 'Amount', 'Fee', 'Tax', 'Gain/Loss'].includes(header);
 }
 
 function renderGroup(transactions: Transaction[]): HTMLDivElement {
@@ -55,6 +157,7 @@ function renderGroup(transactions: Transaction[]): HTMLDivElement {
   // Header
   const titleElement = document.createElement('h2');
   titleElement.innerText = title;
+  titleElement.id = firstTransaction.isin;
   result.appendChild(titleElement);
 
   // ISIN
@@ -79,6 +182,7 @@ function renderGroup(transactions: Transaction[]): HTMLDivElement {
   for (const header of headers) {
     const th = document.createElement('th');
     th.innerText = header;
+    if (isNumericHeader(header)) th.classList.add('numeric');
     headerRow.appendChild(th);
   }
 
@@ -103,6 +207,7 @@ function renderGroup(transactions: Transaction[]): HTMLDivElement {
         td.innerText = '';
       } else if (typeof cell === 'number') {
         td.innerText = cell.toFixed(2);
+        td.classList.add('numeric');
         if (['Amount', 'Gain/Loss'].includes(headers[i])) td.classList.add(cell > 0 ? 'positive' : 'negative');
       } else {
         td.innerText = String(cell);
@@ -162,7 +267,7 @@ function renderGroup(transactions: Transaction[]): HTMLDivElement {
   const gainLossPerYear = new Map<number, number>();
   for (const transaction of transactions) {
     if (transaction.gainOrLoss === 0) continue;
-    const year = transaction.time.getFullYear();
+    const year = transaction.time.getUTCFullYear();
     const gainLoss = gainLossPerYear.get(year) || 0;
     gainLossPerYear.set(year, gainLoss + transaction.gainOrLoss);
   }
@@ -181,6 +286,7 @@ function renderGroup(transactions: Transaction[]): HTMLDivElement {
     for (const header of gainHeaders) {
       const th = document.createElement('th');
       th.innerText = header;
+      if (isNumericHeader(header)) th.classList.add('numeric');
       gainHeaderRow.appendChild(th);
     }
     for (const [year, gainLoss] of gainLossPerYear) {

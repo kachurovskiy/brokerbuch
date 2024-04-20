@@ -6,12 +6,20 @@ html {
 body {
   font-family: Roboto;
   padding: 0 20px;
-  max-width: 1000px;
+  max-width: 800px;
   margin: 0 auto;
+}
+
+.error {
+  color: red;
 }
 
 table {
   border-collapse: collapse;
+}
+
+.yearSecurityTable {
+  width: 100%;
 }
 
 th,
@@ -19,6 +27,7 @@ td {
   padding: 5px;
   border: 1px solid #ddd;
   text-align: left;
+  min-width: 50px;
 }
 
 th {
@@ -29,6 +38,10 @@ th {
 .totalRow {
   background-color: #f2f2f2;
   font-weight: bold;
+}
+
+.numeric {
+  text-align: right;
 }
 
 .positive {
