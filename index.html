@@ -10,13 +10,13 @@
 <body>
   <h1>📖 brokerbuch</h1>
   <p>
-    Open-source single-file web app for analysing Scalable Capital stock market broker transaction log.
+    Open-source tool for analysing Scalable Capital broker transaction log.
     <a href="https://github.com/kachurovskiy/brokerbuch/">Learn more on GitHub</a>
   </p>
+  <p>All amounts shown in Euro. Ignoring cancelled, rejected, pending or expired transactions.</p>
   <p>
     Transactions CSV: <input type="file" id="transactionInput" accept=".csv"/>
   </p>
-  <p>All amounts shown in Euro. Ignoring cancelled, rejected, pending or expired transactions.</p>
   <div id="transactionOutput"></div>
   <script type="module" src="/src/main.ts"></script>
 </body>

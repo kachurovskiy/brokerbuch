@@ -43,17 +43,13 @@ function renderTransactionFile(file: TransactionFile) {
 
   // Show each group of transactions.
   const groups = groupTransactions(executedTransactions);
-  let firstIsinEl = null;
+  const groupChildren = [];
   for (const group of groups) {
     const transactions = group[1];
-    const el = renderGroup(transactions);
-    if (transactions[0].isin || !firstIsinEl) {
-      outputElement.appendChild(el);
-      firstIsinEl = el;
-    } else {
-      outputElement.insertBefore(el, firstIsinEl);
-    }
+    groupChildren.push(renderGroup(transactions));
   }
+  groupChildren.sort((a, b) => a.dataset.sortKey!.localeCompare(b.dataset.sortKey!));
+  outputElement.append(...groupChildren);
 }
 
 function renderYearsSection(transactions: Transaction[]): HTMLDivElement {
@@ -148,24 +144,19 @@ function isNumericHeader(header: string): boolean {
 
 function renderGroup(transactions: Transaction[]): HTMLDivElement {
   const result = document.createElement('div');
+
   result.classList.add('transactionGroup');
   if (transactions.length === 0) return result;
   transactions.sort((a, b) => a.time.getTime() - b.time.getTime());
   const firstTransaction = transactions[0];
+  result.dataset.sortKey = `${firstTransaction.isin.length > 0 ? 1 : 0}${firstTransaction.description}`;
   const title = firstTransaction.isin ? firstTransaction.description : firstTransaction.type;
 
   // Header
   const titleElement = document.createElement('h2');
-  titleElement.innerText = title;
+  titleElement.innerText = title + (firstTransaction.isin ? ' / ' + firstTransaction.isin : '');
   titleElement.id = firstTransaction.isin;
   result.appendChild(titleElement);
-
-  // ISIN
-  if (firstTransaction.isin) {
-    const isinElement = document.createElement('h3');
-    isinElement.innerText = `ISIN: ${firstTransaction.isin}`;
-    result.appendChild(isinElement);
-  }
 
   const table = document.createElement('table');
   const tableScroller = document.createElement('div');
@@ -273,8 +264,7 @@ function renderGroup(transactions: Transaction[]): HTMLDivElement {
   }
 
   if (gainLossPerYear.size > 0) {
-    const gainLossHeader = document.createElement('h3');
-    gainLossHeader.innerText = `Gain/Loss for ${title} per year`;
+    const gainLossHeader = document.createElement('br');
     result.appendChild(gainLossHeader);
     const gainTable = document.createElement('table');
     result.appendChild(gainTable);
