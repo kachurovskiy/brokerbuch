@@ -11,15 +11,20 @@
 
 </script>
   <style>
-body{font-family:Roboto;padding:0 20px}table{border-collapse:collapse}th,td{padding:5px;border:1px solid #ddd;text-align:left}th,.totalRow{background-color:#f2f2f2;font-weight:700}.positive{color:green;text-align:right}.negative{color:red;text-align:right}
+html{padding:0;margin:0}body{font-family:Roboto;padding:0 20px;max-width:1000px;margin:0 auto}table{border-collapse:collapse}th,td{padding:5px;border:1px solid #ddd;text-align:left}th,.totalRow{background-color:#f2f2f2;font-weight:700}.positive{color:green;text-align:right}.negative{color:red;text-align:right}
 
 </style>
 </head>
 
 <body>
-  <h1>Scalable Capital transactions CSV</h1>
-  <input type="file" id="transactionInput" accept=".csv"/>
-  <h1>Analysis</h1>
+  <h1>📖 brokerbuch</h1>
+  <p>
+    Open-source single-file web app for analysing Scalable Capital stock market broker transaction log.
+    <a href="https://github.com/kachurovskiy/brokerbuch/">Learn more on GitHub</a>
+  </p>
+  <p>
+    Transactions CSV: <input type="file" id="transactionInput" accept=".csv"/>
+  </p>
   <p>All amounts shown in Euro. Ignoring cancelled, rejected, pending or expired transactions.</p>
   <div id="transactionOutput"></div>
   
