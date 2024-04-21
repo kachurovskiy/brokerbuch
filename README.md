@@ -11,3 +11,7 @@ This software is provided "as is", without warranty of any kind. See [MIT LICENS
 ## Crypto
 
 If you were selling crypto assets which are treated differently from shares by German tax code, make sure your crypto ISINs are listed in `src\processor.ts` for the separate gain/loss calculation.
+
+## For developers
+
+Use `npm run dev` for local runs, `npm test` to run tests and `npm run build` to build the `docs/index.html` all-in-one web app.
