@@ -15,7 +15,11 @@ function readFile() {
   if (!file) return;
   const reader = new FileReader();
   reader.onload = () => {
-    renderTransactionFile(parseTransactionFile(reader.result as string));
+    try {
+      renderTransactionFile(parseTransactionFile(reader.result as string));
+    } catch (e) {
+      alert(`Error parsing file: ${e}`);
+    }
   };
   reader.onerror = (e) => {
     alert(`Error reading file: ${e}`);
@@ -29,7 +33,8 @@ function renderTransactionFile(file: TransactionFile) {
   const outputElement = document.getElementById('transactionOutput')!;
   outputElement.replaceChildren(
     new SectionErrors().render(model),
-    new SectionYears().render(model),
+    new SectionYears('stocks', [], model.cryptoIsins).render(model),
+    new SectionYears('crypto', model.cryptoIsins, []).render(model),
     new SectionGroups().render(model),
   );
 }

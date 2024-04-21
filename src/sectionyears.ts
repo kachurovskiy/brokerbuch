@@ -2,22 +2,35 @@ import { DataModel, Transaction } from "./interfaces";
 import { isNumericHeader } from "./processor";
 
 export class SectionYears {
+  constructor(
+    private readonly title: string,
+    private readonly includeIsins: string[],
+    private readonly excludeIsins: string[],
+  ) {}
+
   render(model: DataModel): HTMLDivElement {
     const result = document.createElement('div');
 
     const titleElement = document.createElement('h2');
-    titleElement.innerText = 'Realized gain / loss per year';
+    titleElement.innerText = 'Realized gain or loss for ' + this.title;
     result.appendChild(titleElement);
 
-    const years = model.executedTransactions.map(t => t.time.getUTCFullYear());
+    const transactions = model.executedTransactions.filter(t => this.isinFilter(t));
+    const years = transactions.filter(t => this.isinFilter(t)).map(t => t.time.getUTCFullYear());
     const uniqueYears = Array.from(new Set(years)).sort((a, b) => a - b);
     for (const year of uniqueYears) {
-      const yearTransactions = model.executedTransactions.filter(t => t.time.getUTCFullYear() === year && t.gainOrLoss !== 0);
+      const yearTransactions = transactions.filter(t => t.time.getUTCFullYear() === year && t.gainOrLoss !== 0);
       if (yearTransactions.length === 0) continue;
       result.appendChild(this.renderYearSection(model, year, yearTransactions));
     }
 
     return result;
+  }
+
+  private isinFilter(t: Transaction) {
+    if (this.includeIsins.length && !this.includeIsins.includes(t.isin)) return false;
+    if (this.excludeIsins.length && this.excludeIsins.includes(t.isin)) return false;
+    return true;
   }
 
   private renderYearSection(model: DataModel, year: number, transactions: Transaction[]): HTMLDivElement {

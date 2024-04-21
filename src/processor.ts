@@ -1,5 +1,15 @@
 import { DataModel, Transaction, TransactionFile } from "./interfaces";
 
+const CRYPTO_ISINS = [
+  'GB00BLD4ZL17', // CoinShares Physical Bitcoin
+  'GB00BNRRF105', // CoinShares Physical Staked Algorand
+  'GB00BNRRB013', // CoinShares Physical Staked Matic
+  'GB00BNRRFW10', // CoinShares Physical Staked Polkadot
+  'GB00BLD4ZN31', // CoinShares Physical XRP
+  'DE000A3GVKY4', // ETC Group Physical Cardano
+  'DE000A3GVKZ1', // ETC Group Physical Solana
+];
+
 export function prepareDataModel(file: TransactionFile): DataModel {
   const executedTransactions = file.transactions.filter(t => t.status === 'Executed').sort((a, b) => a.time.getTime() - b.time.getTime());
   processSales(executedTransactions);
@@ -9,7 +19,7 @@ export function prepareDataModel(file: TransactionFile): DataModel {
     if (transaction.isin && transaction.description) isinToTitle.set(transaction.isin, transaction.description);
   }
 
-  return { cryptoIsins: [], isinToTitle, file, executedTransactions };
+  return { cryptoIsins: CRYPTO_ISINS, isinToTitle, file, executedTransactions };
 }
 
 function processSales(transactions: Transaction[]) {
@@ -21,7 +31,7 @@ function processSales(transactions: Transaction[]) {
     for (const buy of buys) {
       const sharesToSell = Math.min(buy.shares - buy.sharesSold, remainingShares);
       buy.sharesSold += sharesToSell;
-      buyAmount += sharesToSell * buy.price;
+      buyAmount += sharesToSell * buy.price + (buy.sharesSold === buy.shares ? buy.fee + buy.tax : 0);
       remainingShares -= sharesToSell;
       if (remainingShares === 0) {
         break;
