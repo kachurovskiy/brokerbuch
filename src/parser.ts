@@ -1,39 +1,4 @@
-
-export interface TransactionFile {
-  transactions: Transaction[];
-  errors: string[];
-}
-
-export const TransactionStatuses = ['Executed', 'Cancelled', 'Expired', 'Pending', 'Rejected'];
-export type TransactionStatus = typeof TransactionStatuses[number];
-
-export const AssetTypes = ['Security', 'Cash'];
-export type AssetType = typeof AssetTypes[number];
-
-export const TransactionTypes = ['Buy', 'Sell', 'Distribution', 'Interest', 'Taxes', 'Fee', 'Deposit', 'Withdrawal', 'Corporate action'];
-export type TransactionType = typeof TransactionTypes[number];
-
-export interface Transaction {
-  readonly time: Date;
-  readonly status: TransactionStatus;
-  readonly reference: string;
-  readonly description: string;
-  readonly assetType: AssetType;
-  readonly type: TransactionType;
-  readonly isin: string;
-  readonly shares: number;
-  readonly price: number;
-  readonly amount: number;
-  readonly fee: number;
-  readonly tax: number;
-  readonly currency: string;
-
-  // Only used for type === 'Buy'
-  sharesSold: number;
-
-  // Only used for type === 'Sell'
-  gainOrLoss: number;
-}
+import { Transaction, TransactionStatuses, AssetTypes, TransactionTypes, TransactionFile, TransactionStatus, AssetType, TransactionType } from "./interfaces";
 
 function getRowError(transaction: Transaction, row: any): string {
   if (transaction.time.getFullYear() < 2000 || transaction.time.getFullYear() > 2100) {
@@ -80,11 +45,13 @@ export function parseRows(input: string) {
   rows.shift();
 
   const result = [];
-  for (const rowText of rows) {
+  for (let rowText of rows) {
+    rowText = rowText.trim();
     if (!rowText) continue;
     const values = rowText.split(';');
     if (values.length !== headers.length) throw new Error(`Invalid row: ${rowText}`);
     const row = new Map<string, string>();
+    row.set('raw', rowText);
     for (let i = 0; i < headers.length; i++) {
       let value = values[i];
       if (value.startsWith('"') && value.endsWith('"')) value = value.slice(1, -1);
@@ -96,13 +63,14 @@ export function parseRows(input: string) {
   return result;
 }
 
-export function parseCsv(input: string): TransactionFile {
+export function parseTransactionFile(input: string): TransactionFile {
   const rows = parseRows(input);
 
   const transactions: Transaction[] = [];
   const errors: string[] = [];
   for (const row of rows) {
     const transaction = {
+      raw: row['raw'],
       time: parseTime(row['date'], row['time']),
       status: row['status'] as TransactionStatus,
       reference: row['reference'],

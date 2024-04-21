@@ -1,6 +1,18 @@
-import { Transaction } from "./parser";
+import { DataModel, Transaction, TransactionFile } from "./interfaces";
 
-export function processSales(transactions: Transaction[]) {
+export function prepareDataModel(file: TransactionFile): DataModel {
+  const executedTransactions = file.transactions.filter(t => t.status === 'Executed').sort((a, b) => a.time.getTime() - b.time.getTime());
+  processSales(executedTransactions);
+
+  const isinToTitle = new Map<string, string>();
+  for (const transaction of executedTransactions) {
+    if (transaction.isin && transaction.description) isinToTitle.set(transaction.isin, transaction.description);
+  }
+
+  return { cryptoIsins: [], isinToTitle, file, executedTransactions };
+}
+
+function processSales(transactions: Transaction[]) {
   const sales = transactions.filter(t => t.type === 'Sell');
   for (const sale of sales) {
     const buys = transactions.filter(t => t.type === 'Buy' && t.isin === sale.isin && t.shares > t.sharesSold);
@@ -18,24 +30,6 @@ export function processSales(transactions: Transaction[]) {
     if (remainingShares > 0) throw new Error(`Not enough shares to sell for ${sale.reference}`);
     sale.gainOrLoss = sale.amount - buyAmount - sale.fee - sale.tax;
   }
-  return sales;
-}
-
-export function groupTransactions(transactions: Transaction[]): Map<string, Transaction[]> {
-  const groups = new Map<string, Transaction[]>();
-  for (const transaction of transactions) {
-    const key = getGroupKey(transaction);
-    const group = groups.get(key) || [];
-    group.push(transaction);
-    groups.set(key, group);
-  }
-  return groups;
-}
-
-export function getGroupKey(transaction: Transaction): string {
-  if (transaction.isin) return transaction.isin;
-  if (transaction.type === 'Deposit' || transaction.type === 'Withdrawal') return 'Deposit/Withdrawal';
-  return transaction.type;
 }
 
 export function getRemainingShares(transactions: Transaction[]) {
@@ -48,4 +42,8 @@ export function getRemainingShares(transactions: Transaction[]) {
     }
   }
   return remainingShares;
+}
+
+export function isNumericHeader(header: string): boolean {
+  return ['Shares', 'Price', 'Amount', 'Fee', 'Tax', 'Gain/Loss'].includes(header);
 }
