@@ -31,14 +31,14 @@ function processSales(transactions: Transaction[]) {
     for (const buy of buys) {
       const sharesToSell = Math.min(buy.shares - buy.sharesSold, remainingShares);
       buy.sharesSold += sharesToSell;
-      buyAmount += sharesToSell * buy.price + (buy.sharesSold === buy.shares ? buy.fee + buy.tax : 0);
+      buyAmount += sharesToSell * buy.price + (buy.sharesSold === buy.shares ? buy.fee : 0);
       remainingShares -= sharesToSell;
       if (remainingShares === 0) {
         break;
       }
     }
     if (remainingShares > 0) throw new Error(`Not enough shares to sell for ${sale.reference}`);
-    sale.gainOrLoss = sale.amount - buyAmount - sale.fee - sale.tax;
+    sale.gainOrLoss = sale.amount - buyAmount - sale.fee;
   }
 }
 
